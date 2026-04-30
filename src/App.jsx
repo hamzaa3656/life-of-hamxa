@@ -13,6 +13,17 @@ const C = {
 };
 const FONT = "'Inter', system-ui, sans-serif";
 
+// ── Mobile detection ──────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth < 768);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return mobile;
+}
+
 const NAV = [
   { id:"dashboard", label:"Dashboard",  d:"M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.55 5.45 21 6 21H9M19 10L21 12M19 10V20C19 20.55 18.55 21 18 21H15M9 21C9 21 9 15 12 15C15 15 15 21 15 21M9 21H15" },
   { id:"tasks",     label:"Tasks",       d:"M9 11L12 14L22 4M21 12V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V5C3 3.9 3.9 3 5 3H16" },
@@ -129,6 +140,100 @@ function Stat({ label, value, sub, accent }) {
   );
 }
 
+// ── Bottom Nav (mobile) ────────────────────────────────────────────────────────
+const BOTTOM_NAV  = NAV.slice(0, 4); // Dashboard, Tasks, Reminders, Thoughts
+const MORE_NAV    = NAV.slice(4);    // Goals, Finances, Debt, Clients
+
+function BottomNav({ page, setPage, user, syncing, onLogout }) {
+  const [showMore, setShowMore] = useState(false);
+  const moreActive = MORE_NAV.some(n => n.id === page);
+
+  return (
+    <>
+      {/* More drawer overlay */}
+      {showMore && (
+        <div
+          onClick={() => setShowMore(false)}
+          style={{position:"fixed",inset:0,background:"rgba(11,31,58,.45)",zIndex:998}}
+        />
+      )}
+
+      {/* More drawer panel */}
+      <div style={{
+        position:"fixed",bottom:showMore?64:"-100%",left:0,right:0,
+        background:C.navy,borderRadius:"18px 18px 0 0",zIndex:999,
+        padding:"18px 16px 8px",transition:"bottom .25s ease",
+        boxShadow:"0 -4px 32px rgba(0,0,0,.25)"
+      }}>
+        <div style={{width:36,height:4,background:"rgba(255,255,255,.15)",borderRadius:99,margin:"0 auto 18px"}}/>
+
+        {/* Sync + profile row */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"0 4px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            {user.photoURL
+              ? <img src={user.photoURL} alt="" style={{width:30,height:30,borderRadius:8,objectFit:"cover"}}/>
+              : <div style={{width:30,height:30,borderRadius:8,background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff"}}>{user.displayName?.[0]}</div>
+            }
+            <div>
+              <p style={{margin:0,fontSize:13,fontWeight:600,color:"#fff"}}>{user.displayName?.split(" ")[0]}</p>
+              <p style={{margin:0,fontSize:10,color:"rgba(255,255,255,.3)"}}>{syncing ? "Saving…" : "Synced ✓"}</p>
+            </div>
+          </div>
+          <button onClick={onLogout} style={{background:"rgba(255,255,255,.07)",border:"none",borderRadius:8,padding:"6px 14px",color:"rgba(255,255,255,.45)",fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:FONT}}>
+            Sign out
+          </button>
+        </div>
+
+        {/* Extra nav items */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,paddingBottom:8}}>
+          {MORE_NAV.map(item => {
+            const on = page === item.id;
+            return (
+              <button key={item.id} onClick={() => { setPage(item.id); setShowMore(false); }}
+                style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",borderRadius:10,border:"none",cursor:"pointer",background:on?"rgba(255,255,255,.13)":"rgba(255,255,255,.05)",color:on?"#fff":"rgba(255,255,255,.5)"}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={item.d}/>
+                </svg>
+                <span style={{fontSize:10.5,fontWeight:on?600:400}}>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Bottom tab bar */}
+      <nav style={{
+        position:"fixed",bottom:0,left:0,right:0,height:64,
+        background:C.navy,borderTop:"1px solid rgba(255,255,255,.07)",
+        display:"flex",alignItems:"center",zIndex:997,
+        paddingBottom:"env(safe-area-inset-bottom)",
+      }}>
+        {BOTTOM_NAV.map(item => {
+          const on = page === item.id;
+          return (
+            <button key={item.id} onClick={() => { setPage(item.id); setShowMore(false); }}
+              style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"8px 0",border:"none",background:"transparent",cursor:"pointer",color:on?"#fff":"rgba(255,255,255,.38)"}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={on?"2.2":"1.8"} strokeLinecap="round" strokeLinejoin="round">
+                <path d={item.d}/>
+              </svg>
+              <span style={{fontSize:9.5,fontWeight:on?700:400,letterSpacing:"0.01em"}}>{item.label}</span>
+            </button>
+          );
+        })}
+
+        {/* More button */}
+        <button onClick={() => setShowMore(v => !v)}
+          style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"8px 0",border:"none",background:"transparent",cursor:"pointer",color:moreActive||showMore?"#fff":"rgba(255,255,255,.38)"}}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={moreActive||showMore?"2.2":"1.8"} strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
+          </svg>
+          <span style={{fontSize:9.5,fontWeight:moreActive||showMore?700:400}}>More</span>
+        </button>
+      </nav>
+    </>
+  );
+}
+
 // ── Login Screen ───────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin, loading }) {
   return (
@@ -188,13 +293,13 @@ function Dashboard({ data, nav }) {
         <h2 style={{margin:0,fontSize:25,fontWeight:700,color:C.heading,letterSpacing:"-0.5px"}}>Good morning, Hamxa 👋</h2>
         <p style={{margin:"5px 0 0",fontSize:13.5,color:C.muted}}>{new Date().toLocaleDateString("en-PK",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</p>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:13,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:13,marginBottom:20}}>
         <Stat label="Income"   value={`₨${data.income.toLocaleString()}`}       sub="This month"                     accent={C.blue}  />
         <Stat label="Expenses" value={`₨${totExp.toLocaleString()}`}             sub="This month"                     accent={C.red}   />
         <Stat label="Savings"  value={`₨${savings.toLocaleString()}`}            sub={`${Math.round((savings/data.income)*100)}% saved`} accent={C.green} />
         <Stat label="Net Debt" value={`₨${(totOwed-totLent).toLocaleString()}`} sub={`You owe ₨${totOwed.toLocaleString()}`}         accent={C.amber} />
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:14,marginBottom:14}}>
         <Card>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:13}}>
             <SLabel>Pending Tasks</SLabel>
@@ -845,6 +950,7 @@ export default function App() {
     </div>
   );
 
+  const isMobile = useIsMobile();
   const PAGES = { dashboard:Dashboard, tasks:Tasks, reminders:Reminders, thoughts:Thoughts, goals:Goals, finances:Finances, debt:Debt, clients:Clients };
   const Page  = PAGES[page];
   const firstName = user.displayName?.split(" ")[0] || "Hamxa";
@@ -853,60 +959,67 @@ export default function App() {
     <div style={{display:"flex",minHeight:"100vh",background:C.surface,fontFamily:FONT}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');*{box-sizing:border-box;-webkit-font-smoothing:antialiased}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#D0D5E0;border-radius:99px}button{transition:opacity .15s}button:hover{opacity:.82}`}</style>
 
-      {/* Sidebar */}
-      <aside style={{width:collapsed?60:212,flexShrink:0,background:C.navy,display:"flex",flexDirection:"column",padding:collapsed?"20px 10px":"20px 13px",transition:"width .22s ease",position:"sticky",top:0,height:"100vh",overflowX:"hidden"}}>
-        {/* Logo */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:collapsed?"center":"space-between",marginBottom:26}}>
-          {!collapsed&&(
-            <div>
-              <p style={{margin:0,fontSize:14,fontWeight:700,color:"#fff",whiteSpace:"nowrap",letterSpacing:"-0.2px"}}>Life of {firstName}</p>
-              <p style={{margin:"1px 0 0",fontSize:10,color:"rgba(255,255,255,.3)",whiteSpace:"nowrap",letterSpacing:"0.08em",textTransform:"uppercase"}}>Personal HQ</p>
-            </div>
-          )}
-          <button onClick={()=>setCol(v=>!v)} style={{background:"rgba(255,255,255,.07)",border:"none",borderRadius:7,width:27,height:27,cursor:"pointer",color:"rgba(255,255,255,.5)",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            {collapsed?"›":"‹"}
-          </button>
-        </div>
-
-        {/* Nav */}
-        <nav style={{flex:1,display:"flex",flexDirection:"column",gap:1}}>
-          {NAV.map(item=>{
-            const on = page===item.id;
-            return (
-              <button key={item.id} onClick={()=>setPage(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:collapsed?0:10,padding:collapsed?"9px 0":"9px 11px",justifyContent:collapsed?"center":"flex-start",borderRadius:9,cursor:"pointer",border:"none",background:on?"rgba(255,255,255,.12)":"transparent",color:on?"#fff":"rgba(255,255,255,.42)",transition:"background .15s,color .15s"}}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
-                  <path d={item.d}/>
-                </svg>
-                {!collapsed&&<span style={{fontSize:13.5,fontWeight:on?600:400,whiteSpace:"nowrap"}}>{item.label}</span>}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Profile + sync dot + logout */}
-        <div style={{borderTop:"1px solid rgba(255,255,255,.07)",paddingTop:13}}>
-          {!collapsed&&<div style={{marginBottom:8}}><SyncDot syncing={syncing}/></div>}
-          <div style={{display:"flex",alignItems:"center",gap:collapsed?0:9,justifyContent:collapsed?"center":"flex-start"}}>
-            {user.photoURL
-              ? <img src={user.photoURL} alt="" style={{width:31,height:31,borderRadius:8,flexShrink:0,objectFit:"cover"}}/>
-              : <div style={{width:31,height:31,borderRadius:8,background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{firstName[0]}</div>
-            }
+      {/* Sidebar — desktop only */}
+      {!isMobile && (
+        <aside style={{width:collapsed?60:212,flexShrink:0,background:C.navy,display:"flex",flexDirection:"column",padding:collapsed?"20px 10px":"20px 13px",transition:"width .22s ease",position:"sticky",top:0,height:"100vh",overflowX:"hidden"}}>
+          {/* Logo */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:collapsed?"center":"space-between",marginBottom:26}}>
             {!collapsed&&(
-              <div style={{flex:1,minWidth:0}}>
-                <p style={{margin:0,fontSize:13,fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{firstName}</p>
-                <button onClick={handleLogout} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.3)",fontSize:10.5,padding:0,fontFamily:FONT,fontWeight:500}}>Sign out</button>
+              <div>
+                <p style={{margin:0,fontSize:14,fontWeight:700,color:"#fff",whiteSpace:"nowrap",letterSpacing:"-0.2px"}}>Life of {firstName}</p>
+                <p style={{margin:"1px 0 0",fontSize:10,color:"rgba(255,255,255,.3)",whiteSpace:"nowrap",letterSpacing:"0.08em",textTransform:"uppercase"}}>Personal HQ</p>
               </div>
             )}
+            <button onClick={()=>setCol(v=>!v)} style={{background:"rgba(255,255,255,.07)",border:"none",borderRadius:7,width:27,height:27,cursor:"pointer",color:"rgba(255,255,255,.5)",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              {collapsed?"›":"‹"}
+            </button>
           </div>
-        </div>
-      </aside>
+
+          {/* Nav */}
+          <nav style={{flex:1,display:"flex",flexDirection:"column",gap:1}}>
+            {NAV.map(item=>{
+              const on = page===item.id;
+              return (
+                <button key={item.id} onClick={()=>setPage(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:collapsed?0:10,padding:collapsed?"9px 0":"9px 11px",justifyContent:collapsed?"center":"flex-start",borderRadius:9,cursor:"pointer",border:"none",background:on?"rgba(255,255,255,.12)":"transparent",color:on?"#fff":"rgba(255,255,255,.42)",transition:"background .15s,color .15s"}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+                    <path d={item.d}/>
+                  </svg>
+                  {!collapsed&&<span style={{fontSize:13.5,fontWeight:on?600:400,whiteSpace:"nowrap"}}>{item.label}</span>}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Profile + sync dot + logout */}
+          <div style={{borderTop:"1px solid rgba(255,255,255,.07)",paddingTop:13}}>
+            {!collapsed&&<div style={{marginBottom:8}}><SyncDot syncing={syncing}/></div>}
+            <div style={{display:"flex",alignItems:"center",gap:collapsed?0:9,justifyContent:collapsed?"center":"flex-start"}}>
+              {user.photoURL
+                ? <img src={user.photoURL} alt="" style={{width:31,height:31,borderRadius:8,flexShrink:0,objectFit:"cover"}}/>
+                : <div style={{width:31,height:31,borderRadius:8,background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{firstName[0]}</div>
+              }
+              {!collapsed&&(
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{margin:0,fontSize:13,fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{firstName}</p>
+                  <button onClick={handleLogout} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.3)",fontSize:10.5,padding:0,fontFamily:FONT,fontWeight:500}}>Sign out</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+      )}
 
       {/* Main */}
-      <main style={{flex:1,overflowY:"auto",padding:"34px 42px",minHeight:"100vh"}}>
+      <main style={{flex:1,overflowY:"auto",padding:isMobile?"18px 16px 80px":"34px 42px",minHeight:"100vh"}}>
         <div style={{maxWidth:940,margin:"0 auto"}}>
           <Page data={data} update={update} nav={setPage}/>
         </div>
       </main>
+
+      {/* Bottom nav — mobile only */}
+      {isMobile && (
+        <BottomNav page={page} setPage={setPage} user={user} syncing={syncing} onLogout={handleLogout}/>
+      )}
     </div>
   );
 }
