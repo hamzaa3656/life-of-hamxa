@@ -872,13 +872,14 @@ function Clients({ data, update }) {
 
 // ── Root App with Firebase Auth + Firestore ───────────────────────────────────
 export default function App() {
-  const [user,      setUser]     = useState(null);       // Firebase user
-  const [authReady, setAuthReady]= useState(false);      // auth listener resolved
-  const [data,      setData]     = useState(null);       // app data (null = loading)
+  const [user,      setUser]     = useState(null);
+  const [authReady, setAuthReady]= useState(false);
+  const [data,      setData]     = useState(null);
   const [syncing,   setSyncing]  = useState(false);
   const [page,      setPage]     = useState("dashboard");
   const [collapsed, setCol]      = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
+  const isMobile = useIsMobile();
 
   // ── Auth listener + redirect result ─────────────────────────────────────────
   useEffect(() => {
@@ -944,7 +945,6 @@ export default function App() {
     </div>
   );
 
-  const isMobile = useIsMobile();
   const PAGES = { dashboard:Dashboard, tasks:Tasks, reminders:Reminders, thoughts:Thoughts, goals:Goals, finances:Finances, debt:Debt, clients:Clients };
   const Page  = PAGES[page];
   const firstName = user.displayName?.split(" ")[0] || "Hamxa";
