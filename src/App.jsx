@@ -15,9 +15,10 @@ const FONT = "'Inter', system-ui, sans-serif";
 
 // ── Mobile detection ──────────────────────────────────────────────────────────
 function useIsMobile() {
-  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  const [mobile, setMobile] = useState(false);
   useEffect(() => {
     const fn = () => setMobile(window.innerWidth < 768);
+    fn();
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);
@@ -141,56 +142,49 @@ function Stat({ label, value, sub, accent }) {
 }
 
 // ── Bottom Nav (mobile) ────────────────────────────────────────────────────────
-const BOTTOM_NAV  = NAV.slice(0, 4); // Dashboard, Tasks, Reminders, Thoughts
-const MORE_NAV    = NAV.slice(4);    // Goals, Finances, Debt, Clients
+const BOTTOM_NAV = NAV.slice(0, 4);
+const MORE_NAV   = NAV.slice(4);
 
 function BottomNav({ page, setPage, user, syncing, onLogout }) {
   const [showMore, setShowMore] = useState(false);
   const moreActive = MORE_NAV.some(n => n.id === page);
-
+  const firstName = user.displayName?.split(" ")[0] || "";
   return (
     <>
-      {/* More drawer overlay */}
       {showMore && (
-        <div
-          onClick={() => setShowMore(false)}
-          style={{position:"fixed",inset:0,background:"rgba(11,31,58,.45)",zIndex:998}}
-        />
+        <div onClick={() => setShowMore(false)}
+          style={{position:"fixed",inset:0,background:"rgba(11,31,58,.45)",zIndex:998}}/>
       )}
-
-      {/* More drawer panel */}
-      <div style={{
-        position:"fixed",bottom:showMore?64:"-100%",left:0,right:0,
-        background:C.navy,borderRadius:"18px 18px 0 0",zIndex:999,
-        padding:"18px 16px 8px",transition:"bottom .25s ease",
-        boxShadow:"0 -4px 32px rgba(0,0,0,.25)"
-      }}>
+      {/* More drawer */}
+      <div style={{position:"fixed",bottom:showMore?64:"-260px",left:0,right:0,background:C.navy,
+        borderRadius:"18px 18px 0 0",zIndex:999,padding:"18px 16px 8px",
+        transition:"bottom .25s ease",boxShadow:"0 -4px 32px rgba(0,0,0,.25)"}}>
         <div style={{width:36,height:4,background:"rgba(255,255,255,.15)",borderRadius:99,margin:"0 auto 18px"}}/>
-
-        {/* Sync + profile row */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"0 4px"}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             {user.photoURL
               ? <img src={user.photoURL} alt="" style={{width:30,height:30,borderRadius:8,objectFit:"cover"}}/>
-              : <div style={{width:30,height:30,borderRadius:8,background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff"}}>{user.displayName?.[0]}</div>
+              : <div style={{width:30,height:30,borderRadius:8,background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff"}}>{firstName[0]}</div>
             }
             <div>
-              <p style={{margin:0,fontSize:13,fontWeight:600,color:"#fff"}}>{user.displayName?.split(" ")[0]}</p>
-              <p style={{margin:0,fontSize:10,color:"rgba(255,255,255,.3)"}}>{syncing ? "Saving…" : "Synced ✓"}</p>
+              <p style={{margin:0,fontSize:13,fontWeight:600,color:"#fff"}}>{firstName}</p>
+              <p style={{margin:0,fontSize:10,color:"rgba(255,255,255,.3)"}}>{syncing?"Saving…":"Synced ✓"}</p>
             </div>
           </div>
-          <button onClick={onLogout} style={{background:"rgba(255,255,255,.07)",border:"none",borderRadius:8,padding:"6px 14px",color:"rgba(255,255,255,.45)",fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:FONT}}>
+          <button onClick={onLogout} style={{background:"rgba(255,255,255,.07)",border:"none",borderRadius:8,
+            padding:"6px 14px",color:"rgba(255,255,255,.45)",fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:FONT}}>
             Sign out
           </button>
         </div>
-
-        {/* Extra nav items */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,paddingBottom:8}}>
           {MORE_NAV.map(item => {
             const on = page === item.id;
             return (
               <button key={item.id} onClick={() => { setPage(item.id); setShowMore(false); }}
-                style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",borderRadius:10,border:"none",cursor:"pointer",background:on?"rgba(255,255,255,.13)":"rgba(255,255,255,.05)",color:on?"#fff":"rgba(255,255,255,.5)"}}>
+                style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",
+                  borderRadius:10,border:"none",cursor:"pointer",fontFamily:FONT,
+                  background:on?"rgba(255,255,255,.13)":"rgba(255,255,255,.05)",
+                  color:on?"#fff":"rgba(255,255,255,.5)"}}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   <path d={item.d}/>
                 </svg>
@@ -200,31 +194,31 @@ function BottomNav({ page, setPage, user, syncing, onLogout }) {
           })}
         </div>
       </div>
-
-      {/* Bottom tab bar */}
-      <nav style={{
-        position:"fixed",bottom:0,left:0,right:0,height:64,
-        background:C.navy,borderTop:"1px solid rgba(255,255,255,.07)",
-        display:"flex",alignItems:"center",zIndex:997,
-        paddingBottom:"env(safe-area-inset-bottom)",
-      }}>
+      {/* Tab bar */}
+      <nav style={{position:"fixed",bottom:0,left:0,right:0,height:64,background:C.navy,
+        borderTop:"1px solid rgba(255,255,255,.07)",display:"flex",alignItems:"center",zIndex:997,
+        paddingBottom:"env(safe-area-inset-bottom)"}}>
         {BOTTOM_NAV.map(item => {
           const on = page === item.id;
           return (
             <button key={item.id} onClick={() => { setPage(item.id); setShowMore(false); }}
-              style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"8px 0",border:"none",background:"transparent",cursor:"pointer",color:on?"#fff":"rgba(255,255,255,.38)"}}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={on?"2.2":"1.8"} strokeLinecap="round" strokeLinejoin="round">
+              style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"8px 0",
+                border:"none",background:"transparent",cursor:"pointer",fontFamily:FONT,
+                color:on?"#fff":"rgba(255,255,255,.38)"}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth={on?"2.2":"1.8"} strokeLinecap="round" strokeLinejoin="round">
                 <path d={item.d}/>
               </svg>
-              <span style={{fontSize:9.5,fontWeight:on?700:400,letterSpacing:"0.01em"}}>{item.label}</span>
+              <span style={{fontSize:9.5,fontWeight:on?700:400}}>{item.label}</span>
             </button>
           );
         })}
-
-        {/* More button */}
         <button onClick={() => setShowMore(v => !v)}
-          style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"8px 0",border:"none",background:"transparent",cursor:"pointer",color:moreActive||showMore?"#fff":"rgba(255,255,255,.38)"}}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={moreActive||showMore?"2.2":"1.8"} strokeLinecap="round" strokeLinejoin="round">
+          style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"8px 0",
+            border:"none",background:"transparent",cursor:"pointer",fontFamily:FONT,
+            color:moreActive||showMore?"#fff":"rgba(255,255,255,.38)"}}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth={moreActive||showMore?"2.2":"1.8"} strokeLinecap="round" strokeLinejoin="round">
             <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
           </svg>
           <span style={{fontSize:9.5,fontWeight:moreActive||showMore?700:400}}>More</span>
@@ -962,7 +956,6 @@ export default function App() {
       {/* Sidebar — desktop only */}
       {!isMobile && (
         <aside style={{width:collapsed?60:212,flexShrink:0,background:C.navy,display:"flex",flexDirection:"column",padding:collapsed?"20px 10px":"20px 13px",transition:"width .22s ease",position:"sticky",top:0,height:"100vh",overflowX:"hidden"}}>
-          {/* Logo */}
           <div style={{display:"flex",alignItems:"center",justifyContent:collapsed?"center":"space-between",marginBottom:26}}>
             {!collapsed&&(
               <div>
@@ -974,8 +967,6 @@ export default function App() {
               {collapsed?"›":"‹"}
             </button>
           </div>
-
-          {/* Nav */}
           <nav style={{flex:1,display:"flex",flexDirection:"column",gap:1}}>
             {NAV.map(item=>{
               const on = page===item.id;
@@ -989,8 +980,6 @@ export default function App() {
               );
             })}
           </nav>
-
-          {/* Profile + sync dot + logout */}
           <div style={{borderTop:"1px solid rgba(255,255,255,.07)",paddingTop:13}}>
             {!collapsed&&<div style={{marginBottom:8}}><SyncDot syncing={syncing}/></div>}
             <div style={{display:"flex",alignItems:"center",gap:collapsed?0:9,justifyContent:collapsed?"center":"flex-start"}}>
@@ -1009,8 +998,8 @@ export default function App() {
         </aside>
       )}
 
-      {/* Main */}
-      <main style={{flex:1,overflowY:"auto",padding:isMobile?"18px 16px 80px":"34px 42px",minHeight:"100vh"}}>
+      {/* Main content */}
+      <main style={{flex:1,overflowY:"auto",padding:isMobile?"16px 15px 84px":"34px 42px",minHeight:"100vh",minWidth:0}}>
         <div style={{maxWidth:940,margin:"0 auto"}}>
           <Page data={data} update={update} nav={setPage}/>
         </div>
