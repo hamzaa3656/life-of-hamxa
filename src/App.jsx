@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { onAuthStateChanged, signInWithRedirect, getRedirectResult, signOut } from "firebase/auth";
+import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { auth, db, provider } from "./firebase.js";
 
@@ -783,7 +783,7 @@ export default function App() {
 
   // ── Auth listener + redirect result ─────────────────────────────────────────
   useEffect(() => {
-    getRedirectResult(auth).catch(() => {});
+    
     const unsub = onAuthStateChanged(auth, u => {
       setUser(u);
       setAuthReady(true);
@@ -822,7 +822,7 @@ export default function App() {
   // ── Google login ───────────────────────────────────────────────────────────
   const handleLogin = async () => {
     setLoginLoading(true);
-    try { await signInWithRedirect(auth, provider); }
+    try { await signInWithPopup(auth, provider); }
     catch (e) { console.error(e); }
     finally { setLoginLoading(false); }
   };
