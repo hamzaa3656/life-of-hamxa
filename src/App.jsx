@@ -4,12 +4,13 @@ import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { auth, db, provider } from "./firebase.js";
 
 // ── Colors & Fonts ────────────────────────────────────────────────────────────
+// Dark theme. `white` stays true-white for ink on colored bgs; `card` is the dark surface.
 const C = {
-  navy:"#0B1F3A", navyMid:"#132A4E", blue:"#1B5EE8", blueDim:"#EBF1FF", blueMid:"#BBCEFF",
-  white:"#FFFFFF", surface:"#F5F7FB", surfaceAlt:"#EDF0F7", border:"#E2E6EF", borderMid:"#CBD1DF",
-  muted:"#8B95A8", body:"#3C4560", heading:"#0B1F3A",
-  red:"#DC2626", redDim:"#FEF2F2", green:"#15803D", greenDim:"#F0FDF4",
-  amber:"#B45309", amberDim:"#FFFBEB", purple:"#6D28D9", purpleDim:"#F5F3FF",
+  navy:"#0C111B", navyMid:"#151C29", blue:"#3B82F6", blueDim:"#16233F", blueMid:"#1E2A44",
+  white:"#FFFFFF", card:"#141A26", surface:"#0A0E16", surfaceAlt:"#1B2230", border:"#232B3A", borderMid:"#333D50",
+  muted:"#7E8797", body:"#BFC7D6", heading:"#F1F4FA",
+  red:"#F87171", redDim:"#2A1719", green:"#4ADE80", greenDim:"#122A1D",
+  amber:"#FBBF24", amberDim:"#2A2113", purple:"#A78BFA", purpleDim:"#1E1935",
 };
 const FONT = "'Inter', system-ui, sans-serif";
 
@@ -27,6 +28,7 @@ function useIsMobile() {
 
 const NAV = [
   { id:"dashboard", label:"Dashboard",  d:"M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.55 5.45 21 6 21H9M19 10L21 12M19 10V20C19 20.55 18.55 21 18 21H15M9 21C9 21 9 15 12 15C15 15 15 21 15 21M9 21H15" },
+  { id:"editing",   label:"Editing",     d:"M23 7L16 12L23 17V7Z M14 5H3C1.9 5 1 5.9 1 7V17C1 18.1 1.9 19 3 19H14C15.1 19 16 18.1 16 17V7C16 5.9 15.1 5 14 5Z" },
   { id:"tasks",     label:"Tasks",       d:"M9 11L12 14L22 4M21 12V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V5C3 3.9 3.9 3 5 3H16" },
   { id:"reminders", label:"Reminders",   d:"M15 17H20L18.6 15.6C18.2 15.2 18 14.7 18 14.2V11C18 8.4 16.3 6.2 14 5.3V5C14 3.9 13.1 3 12 3C10.9 3 10 3.9 10 5V5.3C7.7 6.2 6 8.4 6 11V14.2C6 14.7 5.8 15.2 5.4 15.6L4 17H9M15 17V18C15 19.7 13.7 21 12 21C10.3 21 9 19.7 9 18V17M15 17H9" },
   { id:"thoughts",  label:"Thoughts",    d:"M11 5H6C4.9 5 4 5.9 4 7V19C4 20.1 4.9 21 6 21H18C19.1 21 20 20.1 20 19V13M18.6 3.6C19.4 2.8 20.6 2.8 21.4 3.6C22.2 4.4 22.2 5.6 21.4 6.4L11.8 16H9V13.2L18.6 3.6Z" },
@@ -76,7 +78,18 @@ const SEED = {
       projects:[{ name:"Brand Identity Design", budget:35000, status:"active", paid:17500 }]},
     { id:3, name:"Usman Malik", company:"StartupHub", email:"usman@startuphub.io", phone:"+92 333 4561234",
       projects:[{ name:"Dashboard Development", budget:120000, status:"pending", paid:0 }]},
-  ]
+  ],
+  moneyGoal:{ target:12000, current:2100, label:"$12,000 by Dec" },
+  editing:[
+    { id:1, client:"Vipul",   project:"Video edit",                 deadline:"2026-08-30", price:0,   paid:false, status:"progress", notes:"Deliver 12–1pm" },
+    { id:2, client:"Jad",     project:"Reel 1 — captions",          deadline:"2026-08-30", price:0,   paid:false, status:"todo",     notes:"Just captions, 1–2pm" },
+    { id:3, client:"German",  project:"Ad — Video 7",               deadline:"2026-08-30", price:0,   paid:false, status:"todo",     notes:"" },
+    { id:4, client:"Benjamin (BG)", project:"Melbourne “stronger together” reel", deadline:"2026-09-01", price:60, paid:false, status:"todo", notes:"48hr, 4 projects, epic" },
+    { id:5, client:"Spencer", project:"SaaS explainer video",       deadline:"2026-09-01", price:100, paid:true,  status:"todo",     notes:"Paid upfront, not started" },
+    { id:6, client:"Benjamin (BG)", project:"Mike — 10 cinematic reels", deadline:"2026-08-31", price:900, paid:false, status:"todo", notes:"$90 x 10, founder-led" },
+    { id:7, client:"Benjamin (BG)", project:"Suite Vibes — 2 videos", deadline:"2026-08-29", price:160, paid:false, status:"done", notes:"Delivered + revisions uploaded" },
+    { id:8, client:"Benjamin (BG)", project:"Long-form edit",       deadline:"2026-08-25", price:100, paid:false, status:"done",     notes:"Delivered, chasing payment" },
+  ],
 };
 
 // ── Primitives ─────────────────────────────────────────────────────────────────
@@ -86,7 +99,7 @@ function Badge({ type, children }) {
   return <span style={{background:s.bg,color:s.fg,fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:99,letterSpacing:"0.02em",display:"inline-block",textTransform:"capitalize"}}>{children}</span>;
 }
 function Card({ children, style={}, onClick }) {
-  return <div onClick={onClick} style={{background:C.white,borderRadius:12,border:`1px solid ${C.border}`,padding:"20px 22px",...style}}>{children}</div>;
+  return <div onClick={onClick} style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:"20px 22px",...style}}>{children}</div>;
 }
 function SLabel({ children }) {
   return <p style={{margin:"0 0 13px",fontSize:10.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.09em"}}>{children}</p>;
@@ -103,13 +116,13 @@ function PHeader({ title, sub, action, aLabel }) {
   );
 }
 function Input({ style={}, ...p }) {
-  return <input style={{width:"100%",padding:"10px 13px",border:`1px solid ${C.border}`,borderRadius:8,fontSize:13.5,color:C.heading,background:C.white,outline:"none",boxSizing:"border-box",fontFamily:FONT,...style}} {...p}/>;
+  return <input style={{width:"100%",padding:"10px 13px",border:`1px solid ${C.border}`,borderRadius:8,fontSize:13.5,color:C.heading,background:C.surfaceAlt,outline:"none",boxSizing:"border-box",fontFamily:FONT,...style}} {...p}/>;
 }
 function Sel({ children, style={}, ...p }) {
-  return <select style={{width:"100%",padding:"10px 13px",border:`1px solid ${C.border}`,borderRadius:8,fontSize:13.5,color:C.heading,background:C.white,outline:"none",fontFamily:FONT,...style}} {...p}>{children}</select>;
+  return <select style={{width:"100%",padding:"10px 13px",border:`1px solid ${C.border}`,borderRadius:8,fontSize:13.5,color:C.heading,background:C.surfaceAlt,outline:"none",fontFamily:FONT,...style}} {...p}>{children}</select>;
 }
 function TA({ style={}, ...p }) {
-  return <textarea style={{width:"100%",padding:"10px 13px",border:`1px solid ${C.border}`,borderRadius:8,fontSize:13.5,color:C.heading,background:C.white,outline:"none",resize:"vertical",boxSizing:"border-box",fontFamily:FONT,lineHeight:1.6,...style}} {...p}/>;
+  return <textarea style={{width:"100%",padding:"10px 13px",border:`1px solid ${C.border}`,borderRadius:8,fontSize:13.5,color:C.heading,background:C.surfaceAlt,outline:"none",resize:"vertical",boxSizing:"border-box",fontFamily:FONT,lineHeight:1.6,...style}} {...p}/>;
 }
 function Btn({ onClick, v="primary", children, style={} }) {
   const vs = { primary:{background:C.blue,color:C.white,border:"none"}, ghost:{background:"transparent",color:C.muted,border:`1px solid ${C.border}`}, danger:{background:C.redDim,color:C.red,border:`1px solid #FECACA`} };
@@ -118,7 +131,7 @@ function Btn({ onClick, v="primary", children, style={} }) {
 function Modal({ title, onClose, children, wide }) {
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(11,31,58,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-      <div style={{background:C.white,borderRadius:16,padding:"26px 28px",width:wide?580:460,maxWidth:"95vw",maxHeight:"90vh",overflowY:"auto"}}>
+      <div style={{background:C.card,borderRadius:16,border:`1px solid ${C.border}`,padding:"26px 28px",width:wide?580:460,maxWidth:"95vw",maxHeight:"90vh",overflowY:"auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}>
           <h3 style={{margin:0,fontSize:16.5,fontWeight:700,color:C.heading}}>{title}</h3>
           <button onClick={onClose} style={{background:C.surfaceAlt,border:"none",cursor:"pointer",width:28,height:28,borderRadius:7,color:C.muted,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
@@ -234,9 +247,9 @@ function LoginScreen({ onLogin, loading }) {
     <div style={{minHeight:"100vh",background:C.navy,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');`}</style>
       <div style={{textAlign:"center",padding:40}}>
-        <div style={{width:72,height:72,borderRadius:20,background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:700,color:C.white,margin:"0 auto 24px",letterSpacing:"-1px"}}>H</div>
-        <h1 style={{margin:"0 0 8px",fontSize:28,fontWeight:700,color:C.white,letterSpacing:"-0.5px"}}>Life of Hamxa</h1>
-        <p style={{margin:"0 0 40px",fontSize:14,color:"rgba(255,255,255,0.4)",letterSpacing:"0.08em",textTransform:"uppercase"}}>Personal HQ</p>
+        <div style={{width:72,height:72,borderRadius:20,background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,margin:"0 auto 24px"}}>❄️</div>
+        <h1 style={{margin:"0 0 8px",fontSize:26,fontWeight:800,color:C.white,letterSpacing:"0.1em"}}>FROSTERMEDIA</h1>
+        <p style={{margin:"0 0 40px",fontSize:13,color:"rgba(255,255,255,0.4)",letterSpacing:"0.14em",textTransform:"uppercase"}}>Life HQ</p>
         <button
           onClick={onLogin}
           disabled={loading}
@@ -274,86 +287,101 @@ function SyncDot({ syncing }) {
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
-function Dashboard({ data, nav }) {
-  const totExp  = data.expenses.reduce((a,e)=>a+e.amount,0);
-  const savings = data.income - totExp;
-  const totOwed = data.debts.filter(d=>!d.settled&&d.type==="owe").reduce((a,d)=>a+d.amount,0);
-  const totLent = data.debts.filter(d=>!d.settled&&d.type==="lent").reduce((a,d)=>a+d.amount,0);
-  const pending = data.tasks.filter(t=>!t.done);
-  const active  = data.goals.filter(g=>g.status==="active");
+function Dashboard({ data, update, nav, name }) {
+  const [editGoal, setEditGoal] = useState(false);
+  const [gform, setGform] = useState({ target:"", current:"", label:"" });
+  const mg = data.moneyGoal || { target:12000, current:0, label:"Finish strong." };
+  const pct = mg.target>0 ? Math.min(Math.round((mg.current/mg.target)*100),100) : 0;
+  const today = new Date().toISOString().slice(0,10);
+  const jobs = data.editing || [];
+  const dueToday = jobs.filter(j=>j.status!=="done" && j.deadline===today);
+  const active   = jobs.filter(j=>j.status!=="done");
+  const unpaid   = jobs.filter(j=>!j.paid).reduce((a,j)=>a+(j.price||0),0);
+  const R=54, CIRC=2*Math.PI*R, dash=CIRC*pct/100;
+  const openGoal = () => { setGform({target:mg.target,current:mg.current,label:mg.label||""}); setEditGoal(true); };
+  const saveGoal = () => { update("moneyGoal",{ target:Number(gform.target||0), current:Number(gform.current||0), label:gform.label }); setEditGoal(false); };
   return (
     <div>
-      <div style={{marginBottom:26}}>
-        <h2 style={{margin:0,fontSize:25,fontWeight:700,color:C.heading,letterSpacing:"-0.5px"}}>Good morning, Hamxa 👋</h2>
-        <p style={{margin:"5px 0 0",fontSize:13.5,color:C.muted}}>{new Date().toLocaleDateString("en-PK",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</p>
+      <div style={{marginBottom:22}}>
+        <h2 style={{margin:0,fontSize:26,fontWeight:800,color:C.muted,letterSpacing:"-0.6px"}}>let's go, <span style={{color:C.heading}}>{(name||"hamza").toLowerCase()}.</span></h2>
+        <p style={{margin:"6px 0 0",fontSize:13.5,color:C.muted}}>{mg.label||"Finish strong."}</p>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:13,marginBottom:20}}>
-        <Stat label="Income"   value={`₨${data.income.toLocaleString()}`}       sub="This month"                     accent={C.blue}  />
-        <Stat label="Expenses" value={`₨${totExp.toLocaleString()}`}             sub="This month"                     accent={C.red}   />
-        <Stat label="Savings"  value={`₨${savings.toLocaleString()}`}            sub={`${Math.round((savings/data.income)*100)}% saved`} accent={C.green} />
-        <Stat label="Net Debt" value={`₨${(totOwed-totLent).toLocaleString()}`} sub={`You owe ₨${totOwed.toLocaleString()}`}         accent={C.amber} />
+
+      {/* Money goal hero */}
+      <Card style={{marginBottom:14}}>
+        <div style={{display:"flex",alignItems:"center",gap:24,flexWrap:"wrap"}}>
+          <div style={{position:"relative",width:132,height:132,flexShrink:0}}>
+            <svg width="132" height="132" viewBox="0 0 132 132">
+              <circle cx="66" cy="66" r={R} fill="none" stroke={C.surfaceAlt} strokeWidth="11"/>
+              <circle cx="66" cy="66" r={R} fill="none" stroke={C.blue} strokeWidth="11" strokeLinecap="round"
+                strokeDasharray={`${dash} ${CIRC}`} transform="rotate(-90 66 66)" style={{transition:"stroke-dasharray .5s"}}/>
+            </svg>
+            <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+              <span style={{fontSize:10.5,fontWeight:700,color:C.muted,letterSpacing:"0.05em"}}>{pct}% THERE</span>
+              <span style={{fontSize:22,fontWeight:800,color:C.heading,letterSpacing:"-0.5px"}}>${mg.current.toLocaleString()}</span>
+              <span style={{fontSize:11,color:C.muted}}>of ${mg.target.toLocaleString()}</span>
+            </div>
+          </div>
+          <div style={{flex:1,minWidth:180}}>
+            <SLabel>Money Goal</SLabel>
+            <p style={{margin:"0 0 14px",fontSize:14.5,color:C.body,lineHeight:1.6}}>You're <b style={{color:C.heading}}>${(mg.target-mg.current).toLocaleString()}</b> away from <b style={{color:C.heading}}>${mg.target.toLocaleString()}</b>.</p>
+            <Btn v="ghost" onClick={openGoal}>Edit goal</Btn>
+          </div>
+        </div>
+      </Card>
+
+      {/* Editing stat row */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:13,marginBottom:14}}>
+        <Stat label="Active Jobs" value={active.length}                sub="in the pipeline" accent={C.blue}/>
+        <Stat label="Due Today"   value={dueToday.length}              sub="deliverables"    accent={C.red}/>
+        <Stat label="Unpaid"      value={`$${unpaid.toLocaleString()}`} sub="to collect"     accent={C.amber}/>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:14,marginBottom:14}}>
+
+      {/* Due today + pending tasks */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:14}}>
+        <Card>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:13}}>
+            <SLabel>Due Today</SLabel>
+            <button onClick={()=>nav("editing")} style={{fontSize:12,color:C.blue,background:"none",border:"none",cursor:"pointer",fontWeight:600,fontFamily:FONT}}>Tracker →</button>
+          </div>
+          {dueToday.map(j=>(
+            <div key={j.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:C.surfaceAlt,borderRadius:8,marginBottom:7}}>
+              <div style={{width:7,height:7,borderRadius:2,background:C.red,flexShrink:0}}/>
+              <span style={{flex:1,fontSize:13.5,color:C.body}}>{j.project} <span style={{color:C.muted}}>· {j.client}</span></span>
+            </div>
+          ))}
+          {dueToday.length===0&&<p style={{color:C.muted,fontSize:13}}>Nothing due today 🎉</p>}
+        </Card>
         <Card>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:13}}>
             <SLabel>Pending Tasks</SLabel>
             <button onClick={()=>nav("tasks")} style={{fontSize:12,color:C.blue,background:"none",border:"none",cursor:"pointer",fontWeight:600,fontFamily:FONT}}>View all</button>
           </div>
-          {pending.slice(0,4).map(t=>(
-            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:C.surface,borderRadius:8,marginBottom:7}}>
+          {data.tasks.filter(t=>!t.done).slice(0,4).map(t=>(
+            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:C.surfaceAlt,borderRadius:8,marginBottom:7}}>
               <div style={{width:7,height:7,borderRadius:2,background:t.priority==="high"?C.red:t.priority==="medium"?C.amber:C.green,flexShrink:0}}/>
               <span style={{flex:1,fontSize:13.5,color:C.body}}>{t.text}</span>
               <Badge type={t.priority}>{t.priority}</Badge>
             </div>
           ))}
-          {pending.length===0&&<p style={{color:C.muted,fontSize:13}}>All tasks complete 🎉</p>}
+          {data.tasks.filter(t=>!t.done).length===0&&<p style={{color:C.muted,fontSize:13}}>All tasks complete 🎉</p>}
         </Card>
-        <Card>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:13}}>
-            <SLabel>Active Goals</SLabel>
-            <button onClick={()=>nav("goals")} style={{fontSize:12,color:C.blue,background:"none",border:"none",cursor:"pointer",fontWeight:600,fontFamily:FONT}}>View all</button>
+      </div>
+
+      {editGoal&&(
+        <Modal title="Edit Money Goal" onClose={()=>setEditGoal(false)}>
+          <div style={{display:"flex",flexDirection:"column",gap:11}}>
+            <Input placeholder="Label (e.g. $12,000 by Dec)" value={gform.label} onChange={e=>setGform({...gform,label:e.target.value})} autoFocus/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:11}}>
+              <Input type="number" placeholder="Target ($)" value={gform.target} onChange={e=>setGform({...gform,target:e.target.value})}/>
+              <Input type="number" placeholder="Current ($)" value={gform.current} onChange={e=>setGform({...gform,current:e.target.value})}/>
+            </div>
+            <div style={{display:"flex",gap:9,justifyContent:"flex-end",marginTop:4}}>
+              <Btn v="ghost" onClick={()=>setEditGoal(false)}>Cancel</Btn><Btn onClick={saveGoal}>Save</Btn>
+            </div>
           </div>
-          {active.slice(0,3).map(g=>{
-            const pct = Math.round((g.current/g.target)*100);
-            return (
-              <div key={g.id} style={{marginBottom:13}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                  <span style={{fontSize:13.5,color:C.body,fontWeight:500}}>{g.title}</span>
-                  <span style={{fontSize:12,fontWeight:700,color:pct>=80?C.green:pct>=40?C.blue:C.amber}}>{pct}%</span>
-                </div>
-                <Bar pct={pct} color={pct>=80?C.green:pct>=40?C.blue:C.amber}/>
-              </div>
-            );
-          })}
-        </Card>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-        <Card>
-          <SLabel>Recent Thoughts</SLabel>
-          {data.thoughts.slice(0,2).map(t=>(
-            <div key={t.id} style={{marginBottom:9,padding:"11px 13px",background:C.surface,borderRadius:8,borderLeft:`3px solid ${C.blue}`}}>
-              <p style={{margin:"0 0 3px",fontSize:13.5,fontWeight:600,color:C.heading}}>{t.title}</p>
-              <p style={{margin:0,fontSize:12.5,color:C.muted,lineHeight:1.55}}>{t.body.slice(0,85)}…</p>
-            </div>
-          ))}
-        </Card>
-        <Card>
-          <SLabel>Debt Overview</SLabel>
-          {data.debts.filter(d=>!d.settled).slice(0,3).map(d=>(
-            <div key={d.id} style={{display:"flex",alignItems:"center",gap:12,padding:"9px 0",borderBottom:`1px solid ${C.border}`}}>
-              <div style={{flex:1}}>
-                <p style={{margin:0,fontSize:13.5,fontWeight:600,color:C.heading}}>{d.person}</p>
-                <p style={{margin:0,fontSize:12,color:C.muted}}>{d.note}</p>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <p style={{margin:"0 0 4px",fontSize:14,fontWeight:700,color:d.type==="owe"?C.red:C.green}}>₨{d.amount.toLocaleString()}</p>
-                <Badge type={d.type}>{d.type==="owe"?"I owe":"They owe"}</Badge>
-              </div>
-            </div>
-          ))}
-          {data.debts.filter(d=>!d.settled).length===0&&<p style={{color:C.muted,fontSize:13}}>No active debts 🎉</p>}
-        </Card>
-      </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -628,7 +656,7 @@ function Finances({ data, update }) {
   return (
     <div>
       <PHeader title="Finances" sub="Income, expenses & savings" action={()=>setModal(true)} aLabel="+ Add Expense"/>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:13,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:13,marginBottom:20}}>
         <Stat label="Income"   value={`₨${data.income.toLocaleString()}`}  sub="Click below to edit" accent={C.blue}/>
         <Stat label="Expenses" value={`₨${totExp.toLocaleString()}`}        sub="This month"          accent={C.red}/>
         <Stat label="Savings"  value={`₨${savings.toLocaleString()}`}       sub={`${Math.round((savings/data.income)*100)}% of income`} accent={savings>=0?C.green:C.red}/>
@@ -642,7 +670,7 @@ function Finances({ data, update }) {
           </div>
         )}
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:14}}>
         <Card>
           <SLabel>Expense Log</SLabel>
           {data.expenses.map(e=>(
@@ -702,7 +730,7 @@ function Debt({ data, update }) {
   return (
     <div>
       <PHeader title="Debt Tracker" sub="Money you owe & are owed" action={()=>setModal(true)} aLabel="+ Add Entry"/>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:13,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:13,marginBottom:20}}>
         <Stat label="You Owe"   value={`₨${totOwed.toLocaleString()}`} sub="To others"       accent={C.red}/>
         <Stat label="Owed to You" value={`₨${totLent.toLocaleString()}`} sub="From others"   accent={C.green}/>
         <Stat label="Net"       value={`₨${(totLent-totOwed).toLocaleString()}`} sub={totLent>=totOwed?"You're ahead":"You're behind"} accent={totLent>=totOwed?C.green:C.red}/>
@@ -781,7 +809,7 @@ function Clients({ data, update }) {
   return (
     <div>
       <PHeader title="Clients & Projects" sub={`${data.clients.length} clients · ₨${totPipeline.toLocaleString()} pipeline`} action={()=>setModal(true)} aLabel="+ Add Client"/>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:13,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:13,marginBottom:20}}>
         <Stat label="Total Clients"   value={data.clients.length}                       sub="All time"                                accent={C.blue}/>
         <Stat label="Pipeline"        value={`₨${totPipeline.toLocaleString()}`}        sub="All projects"                           accent={C.purple}/>
         <Stat label="Received"        value={`₨${totReceived.toLocaleString()}`}        sub={`₨${(totPipeline-totReceived).toLocaleString()} pending`} accent={C.green}/>
@@ -814,7 +842,7 @@ function Clients({ data, update }) {
       </div>
       {detail&&(
         <Modal title={detail.name} onClose={()=>setDetail(null)} wide>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:9,marginBottom:18,padding:"13px 15px",background:C.surface,borderRadius:10}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:9,marginBottom:18,padding:"13px 15px",background:C.surfaceAlt,borderRadius:10}}>
             {[["Company",detail.company],["Email",detail.email],["Phone",detail.phone]].map(([l,v])=>(
               <div key={l}><p style={{margin:"0 0 2px",fontSize:10.5,color:C.muted,fontWeight:700,textTransform:"uppercase"}}>{l}</p><p style={{margin:0,fontSize:13.5,color:l==="Email"?C.blue:C.heading}}>{v||"—"}</p></div>
             ))}
@@ -870,6 +898,89 @@ function Clients({ data, update }) {
   );
 }
 
+// ── Editing Tracker ───────────────────────────────────────────────────────────
+const EDIT_STATUS = { todo:{bg:C.amberDim,fg:C.amber,label:"To do"}, progress:{bg:C.blueDim,fg:C.blue,label:"Editing"}, done:{bg:C.greenDim,fg:C.green,label:"Done"} };
+function Editing({ data, update }) {
+  const [modal, setModal] = useState(false);
+  const [form, setForm]   = useState({ client:"", project:"", deadline:"", price:"", notes:"" });
+  const jobs  = data.editing || [];
+  const today = new Date().toISOString().slice(0,10);
+  const add = () => {
+    if(!form.client.trim()||!form.project.trim()) return;
+    update("editing",[...jobs,{ id:Date.now(), ...form, price:Number(form.price||0), paid:false, status:"todo" }]);
+    setForm({client:"",project:"",deadline:"",price:"",notes:""}); setModal(false);
+  };
+  const setStatus  = (id,status) => update("editing",jobs.map(j=>j.id===id?{...j,status}:j));
+  const togglePaid = id => update("editing",jobs.map(j=>j.id===id?{...j,paid:!j.paid}:j));
+  const remove     = id => update("editing",jobs.filter(j=>j.id!==id));
+
+  const active   = jobs.filter(j=>j.status!=="done");
+  const dueToday = active.filter(j=>j.deadline===today).length;
+  const unpaid   = jobs.filter(j=>!j.paid).reduce((a,j)=>a+(j.price||0),0);
+  const inProg   = jobs.filter(j=>j.status==="progress").length;
+  const sorted   = [...jobs].sort((a,b)=>(a.status==="done")-(b.status==="done")||(a.deadline||"9999").localeCompare(b.deadline||"9999"));
+
+  return (
+    <div>
+      <PHeader title="Editing Tracker" sub={`${active.length} active · ${jobs.filter(j=>j.status==="done").length} done`} action={()=>setModal(true)} aLabel="+ New Job"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:13,marginBottom:20}}>
+        <Stat label="Due Today"   value={dueToday}                    sub="deliverables" accent={C.red}/>
+        <Stat label="In Progress" value={inProg}                      sub="being edited" accent={C.blue}/>
+        <Stat label="Unpaid"      value={`$${unpaid.toLocaleString()}`} sub="to collect"  accent={C.amber}/>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {sorted.map(j=>{
+          const st = EDIT_STATUS[j.status]||EDIT_STATUS.todo;
+          const overdue = j.deadline && j.deadline<today && j.status!=="done";
+          const isToday = j.deadline===today && j.status!=="done";
+          return (
+            <Card key={j.id} style={{opacity:j.status==="done"?0.62:1,padding:"15px 18px"}}>
+              <div style={{display:"flex",alignItems:"flex-start",gap:13,flexWrap:"wrap"}}>
+                <div style={{flex:1,minWidth:170}}>
+                  <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:4,flexWrap:"wrap"}}>
+                    <p style={{margin:0,fontSize:14.5,fontWeight:600,color:C.heading}}>{j.project}</p>
+                    <span style={{background:st.bg,color:st.fg,fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:99}}>{st.label}</span>
+                  </div>
+                  <p style={{margin:"0 0 4px",fontSize:12.5,color:C.muted}}>{j.client}</p>
+                  {j.notes&&<p style={{margin:0,fontSize:12,color:C.muted}}>{j.notes}</p>}
+                  <div style={{display:"flex",alignItems:"center",gap:12,marginTop:7,flexWrap:"wrap"}}>
+                    {j.deadline&&<span style={{fontSize:12,fontWeight:600,color:overdue?C.red:isToday?C.amber:C.muted}}>{overdue?"Overdue · ":isToday?"Today · ":""}{j.deadline}</span>}
+                    {j.price>0&&<span style={{fontSize:12.5,fontWeight:700,color:j.paid?C.green:C.heading}}>${j.price.toLocaleString()}{j.paid?" · paid":""}</span>}
+                  </div>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
+                  <Sel value={j.status} onChange={e=>setStatus(j.id,e.target.value)} style={{padding:"6px 10px",fontSize:12,width:"auto"}}>
+                    <option value="todo">To do</option><option value="progress">Editing</option><option value="done">Done</option>
+                  </Sel>
+                  {j.price>0&&<button onClick={()=>togglePaid(j.id)} style={{padding:"5px 12px",borderRadius:7,fontSize:12,fontWeight:600,cursor:"pointer",border:"none",fontFamily:FONT,background:j.paid?C.greenDim:C.surfaceAlt,color:j.paid?C.green:C.muted}}>{j.paid?"Paid ✓":"Mark paid"}</button>}
+                  <button onClick={()=>remove(j.id)} style={{padding:"5px 12px",borderRadius:7,fontSize:12,fontWeight:600,cursor:"pointer",border:"none",fontFamily:FONT,background:C.redDim,color:C.red}}>Delete</button>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+        {jobs.length===0&&<p style={{color:C.muted,textAlign:"center",padding:"48px 0",fontSize:13.5}}>No editing jobs yet. Add your first.</p>}
+      </div>
+      {modal&&(
+        <Modal title="New Editing Job" onClose={()=>setModal(false)}>
+          <div style={{display:"flex",flexDirection:"column",gap:11}}>
+            <Input placeholder="Client" value={form.client} onChange={e=>setForm({...form,client:e.target.value})} autoFocus/>
+            <Input placeholder="Project (e.g. 5 reels, long-form)" value={form.project} onChange={e=>setForm({...form,project:e.target.value})}/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:11}}>
+              <Input type="date" value={form.deadline} onChange={e=>setForm({...form,deadline:e.target.value})}/>
+              <Input type="number" placeholder="Price ($)" value={form.price} onChange={e=>setForm({...form,price:e.target.value})}/>
+            </div>
+            <Input placeholder="Notes (optional)" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/>
+            <div style={{display:"flex",gap:9,justifyContent:"flex-end",marginTop:4}}>
+              <Btn v="ghost" onClick={()=>setModal(false)}>Cancel</Btn><Btn onClick={add}>Add Job</Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 // ── Root App with Firebase Auth + Firestore ───────────────────────────────────
 export default function App() {
   const [user,      setUser]     = useState(null);
@@ -895,14 +1006,20 @@ export default function App() {
   useEffect(() => {
     if (!user) { setData(null); return; }
     const ref = doc(db, "users", user.uid);
-    const unsub = onSnapshot(ref, snap => {
-      if (snap.exists()) {
-        setData(snap.data());
-      } else {
-        // First login — seed with default data
-        setDoc(ref, SEED).then(() => setData(SEED));
+    const unsub = onSnapshot(
+      ref,
+      snap => {
+        if (snap.exists()) {
+          setData({ ...SEED, ...snap.data() });   // SEED fills any keys added later (editing, moneyGoal)
+        } else {
+          setDoc(ref, SEED).then(() => setData(SEED)).catch(e => { console.error(e); setData(SEED); });
+        }
+      },
+      err => {                                     // don't hang forever if the read is blocked/offline
+        console.error("Firestore listen failed:", err);
+        setData(prev => prev || SEED);
       }
-    });
+    );
     return unsub;
   }, [user]);
 
@@ -945,7 +1062,7 @@ export default function App() {
     </div>
   );
 
-  const PAGES = { dashboard:Dashboard, tasks:Tasks, reminders:Reminders, thoughts:Thoughts, goals:Goals, finances:Finances, debt:Debt, clients:Clients };
+  const PAGES = { dashboard:Dashboard, editing:Editing, tasks:Tasks, reminders:Reminders, thoughts:Thoughts, goals:Goals, finances:Finances, debt:Debt, clients:Clients };
   const Page  = PAGES[page];
   const firstName = user.displayName?.split(" ")[0] || "Hamxa";
 
@@ -959,8 +1076,8 @@ export default function App() {
           <div style={{display:"flex",alignItems:"center",justifyContent:collapsed?"center":"space-between",marginBottom:26}}>
             {!collapsed&&(
               <div>
-                <p style={{margin:0,fontSize:14,fontWeight:700,color:"#fff",whiteSpace:"nowrap",letterSpacing:"-0.2px"}}>Life of {firstName}</p>
-                <p style={{margin:"1px 0 0",fontSize:10,color:"rgba(255,255,255,.3)",whiteSpace:"nowrap",letterSpacing:"0.08em",textTransform:"uppercase"}}>Personal HQ</p>
+                <p style={{margin:0,fontSize:13,fontWeight:800,color:"#fff",whiteSpace:"nowrap",letterSpacing:"0.14em"}}>FROSTERMEDIA</p>
+                <p style={{margin:"1px 0 0",fontSize:10,color:"rgba(255,255,255,.3)",whiteSpace:"nowrap",letterSpacing:"0.08em",textTransform:"uppercase"}}>Life HQ</p>
               </div>
             )}
             <button onClick={()=>setCol(v=>!v)} style={{background:"rgba(255,255,255,.07)",border:"none",borderRadius:7,width:27,height:27,cursor:"pointer",color:"rgba(255,255,255,.5)",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -1001,7 +1118,7 @@ export default function App() {
       {/* Main content */}
       <main style={{flex:1,overflowY:"auto",padding:isMobile?"16px 15px 84px":"34px 42px",minHeight:"100vh",minWidth:0}}>
         <div style={{maxWidth:940,margin:"0 auto"}}>
-          <Page data={data} update={update} nav={setPage}/>
+          <Page data={data} update={update} nav={setPage} name={firstName}/>
         </div>
       </main>
 
