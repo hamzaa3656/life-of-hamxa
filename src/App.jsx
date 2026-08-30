@@ -6,9 +6,10 @@ import { auth, db, provider } from "./firebase.js";
 // ── Colors & Fonts ────────────────────────────────────────────────────────────
 // Dark theme. `white` stays true-white for ink on colored bgs; `card` is the dark surface.
 const C = {
-  navy:"#0C111B", navyMid:"#151C29", blue:"#3B82F6", blueDim:"#16233F", blueMid:"#1E2A44",
-  white:"#FFFFFF", card:"#141A26", surface:"#0A0E16", surfaceAlt:"#1B2230", border:"#232B3A", borderMid:"#333D50",
-  muted:"#7E8797", body:"#BFC7D6", heading:"#F1F4FA",
+  // Monochrome: black · dark-grey · white. `blue` is repurposed as the white accent (rings, links, active).
+  navy:"#0C0D10", navyMid:"#16181C", blue:"#F2F4F8", blueDim:"#212429", blueMid:"#2A2E35",
+  white:"#FFFFFF", card:"#141619", surface:"#08090B", surfaceAlt:"#1C1F24", border:"#282B31", borderMid:"#373B43",
+  muted:"#8A909C", body:"#C4CAD4", heading:"#F4F6FA",
   red:"#F87171", redDim:"#2A1719", green:"#4ADE80", greenDim:"#122A1D",
   amber:"#FBBF24", amberDim:"#2A2113", purple:"#A78BFA", purpleDim:"#1E1935",
 };
@@ -38,58 +39,12 @@ const NAV = [
   { id:"clients",   label:"Clients",     d:"M17 20H22V18C22 16.3 20.7 15 19 15C18 15 17.2 15.4 16.6 16.1M7 20H2V18C2 16.3 3.3 15 5 15C6 15 6.8 15.4 7.4 16.1M7 20V18C7 17.3 7.1 16.7 7.4 16.1M16.6 16.1C16 14.3 14.1 13 12 13C9.9 13 8 14.3 7.4 16.1M15 7C15 8.7 13.7 10 12 10C10.3 10 9 8.7 9 7C9 5.3 10.3 4 12 4C13.7 4 15 5.3 15 7ZM21 10C21 11.1 20.1 12 19 12C17.9 12 17 11.1 17 10C17 8.9 17.9 8 19 8C20.1 8 21 8.9 21 10ZM7 10C7 11.1 6.1 12 5 12C3.9 12 3 11.1 3 10C3 8.9 3.9 8 5 8C6.1 8 7 8.9 7 10Z" },
 ];
 
+// Blank starter — no personal data, so every account (Hamza, Taha, anyone) begins clean
+// and whatever they enter is what persists to *their own* Firestore doc.
 const SEED = {
-  tasks:[
-    { id:1, text:"Review project proposal", done:false, priority:"high", date:"2025-05-01" },
-    { id:2, text:"Buy groceries", done:true, priority:"low", date:"2025-04-30" },
-    { id:3, text:"Gym session", done:false, priority:"medium", date:"2025-04-30" },
-  ],
-  reminders:[
-    { id:1, title:"Team standup", time:"09:00", date:"2025-05-01", done:false },
-    { id:2, title:"Take medication", time:"20:00", date:"2025-04-30", done:false },
-  ],
-  thoughts:[
-    { id:1, title:"Morning reflection", body:"Today I want to focus on deep work and avoid distractions. Feeling motivated to push through the project milestones.", date:"2025-04-30", mood:"motivated" },
-    { id:2, title:"Business idea", body:"A SaaS tool for freelancers to manage clients and invoices. Could be a great side project to explore this quarter.", date:"2025-04-29", mood:"excited" },
-  ],
-  goals:[
-    { id:1, title:"Save ₨500,000 this year", category:"Finance", target:500000, current:150000, deadline:"2025-12-31", status:"active", unit:"₨" },
-    { id:2, title:"Read 12 books", category:"Learning", target:12, current:3, deadline:"2025-12-31", status:"active", unit:"books" },
-    { id:3, title:"Launch SaaS product", category:"Business", target:1, current:0, deadline:"2025-08-01", status:"active", unit:"launch" },
-  ],
-  expenses:[
-    { id:1, category:"Diet", item:"Groceries", amount:3500, date:"2025-04-29" },
-    { id:2, category:"Transport", item:"Uber ride", amount:450, date:"2025-04-28" },
-    { id:3, category:"Diet", item:"Restaurant lunch", amount:1200, date:"2025-04-27" },
-    { id:4, category:"Utilities", item:"Internet bill", amount:2500, date:"2025-04-26" },
-  ],
-  income:150000,
-  debts:[
-    { id:1, person:"Ahmed Bhai", amount:15000, type:"owe", note:"Borrowed for laptop repair", date:"2025-03-15", settled:false },
-    { id:2, person:"Rayan", amount:5000, type:"lent", note:"Lent for transport expenses", date:"2025-04-10", settled:false },
-  ],
-  clients:[
-    { id:1, name:"Ali Raza", company:"TechVentures PK", email:"ali@techventures.pk", phone:"+92 300 1234567",
-      projects:[
-        { name:"E-commerce Website", budget:85000, status:"active", paid:40000 },
-        { name:"Mobile App UI", budget:45000, status:"completed", paid:45000 },
-      ]},
-    { id:2, name:"Sara Khan", company:"DigitalEdge", email:"sara@digitaledge.co", phone:"+92 321 9876543",
-      projects:[{ name:"Brand Identity Design", budget:35000, status:"active", paid:17500 }]},
-    { id:3, name:"Usman Malik", company:"StartupHub", email:"usman@startuphub.io", phone:"+92 333 4561234",
-      projects:[{ name:"Dashboard Development", budget:120000, status:"pending", paid:0 }]},
-  ],
-  moneyGoal:{ target:12000, current:2100, label:"$12,000 by Dec" },
-  editing:[
-    { id:1, client:"Vipul",   project:"Video edit",                 deadline:"2026-08-30", price:0,   paid:false, status:"progress", notes:"Deliver 12–1pm" },
-    { id:2, client:"Jad",     project:"Reel 1 — captions",          deadline:"2026-08-30", price:0,   paid:false, status:"todo",     notes:"Just captions, 1–2pm" },
-    { id:3, client:"German",  project:"Ad — Video 7",               deadline:"2026-08-30", price:0,   paid:false, status:"todo",     notes:"" },
-    { id:4, client:"Benjamin (BG)", project:"Melbourne “stronger together” reel", deadline:"2026-09-01", price:60, paid:false, status:"todo", notes:"48hr, 4 projects, epic" },
-    { id:5, client:"Spencer", project:"SaaS explainer video",       deadline:"2026-09-01", price:100, paid:true,  status:"todo",     notes:"Paid upfront, not started" },
-    { id:6, client:"Benjamin (BG)", project:"Mike — 10 cinematic reels", deadline:"2026-08-31", price:900, paid:false, status:"todo", notes:"$90 x 10, founder-led" },
-    { id:7, client:"Benjamin (BG)", project:"Suite Vibes — 2 videos", deadline:"2026-08-29", price:160, paid:false, status:"done", notes:"Delivered + revisions uploaded" },
-    { id:8, client:"Benjamin (BG)", project:"Long-form edit",       deadline:"2026-08-25", price:100, paid:false, status:"done",     notes:"Delivered, chasing payment" },
-  ],
+  tasks:[], reminders:[], thoughts:[], goals:[], expenses:[], income:0, debts:[], clients:[],
+  editing:[],
+  moneyGoal:{ target:12000, current:0, label:"$12,000 by Dec" },
 };
 
 // ── Primitives ─────────────────────────────────────────────────────────────────
@@ -125,12 +80,12 @@ function TA({ style={}, ...p }) {
   return <textarea style={{width:"100%",padding:"10px 13px",border:`1px solid ${C.border}`,borderRadius:8,fontSize:13.5,color:C.heading,background:C.surfaceAlt,outline:"none",resize:"vertical",boxSizing:"border-box",fontFamily:FONT,lineHeight:1.6,...style}} {...p}/>;
 }
 function Btn({ onClick, v="primary", children, style={} }) {
-  const vs = { primary:{background:C.blue,color:C.white,border:"none"}, ghost:{background:"transparent",color:C.muted,border:`1px solid ${C.border}`}, danger:{background:C.redDim,color:C.red,border:`1px solid #FECACA`} };
+  const vs = { primary:{background:C.heading,color:C.surface,border:"none"}, ghost:{background:"transparent",color:C.body,border:`1px solid ${C.borderMid}`}, danger:{background:C.redDim,color:C.red,border:`1px solid ${C.border}`} };
   return <button onClick={onClick} style={{padding:"9px 18px",borderRadius:8,fontSize:13.5,fontWeight:600,cursor:"pointer",fontFamily:FONT,...vs[v],...style}}>{children}</button>;
 }
 function Modal({ title, onClose, children, wide }) {
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(11,31,58,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{background:C.card,borderRadius:16,border:`1px solid ${C.border}`,padding:"26px 28px",width:wide?580:460,maxWidth:"95vw",maxHeight:"90vh",overflowY:"auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}>
           <h3 style={{margin:0,fontSize:16.5,fontWeight:700,color:C.heading}}>{title}</h3>
@@ -146,10 +101,13 @@ function Bar({ pct, color=C.blue, h=6 }) {
 }
 function Stat({ label, value, sub, accent }) {
   return (
-    <Card style={{borderLeft:`3px solid ${accent}`}}>
-      <p style={{margin:"0 0 9px",fontSize:10.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.09em"}}>{label}</p>
-      <p style={{margin:"0 0 4px",fontSize:23,fontWeight:700,color:C.heading,letterSpacing:"-0.5px"}}>{value}</p>
-      {sub&&<p style={{margin:0,fontSize:12,color:C.muted}}>{sub}</p>}
+    <Card style={{padding:"17px 18px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:11}}>
+        <span style={{width:6,height:6,borderRadius:99,background:accent,flexShrink:0}}/>
+        <p style={{margin:0,fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em"}}>{label}</p>
+      </div>
+      <p style={{margin:"0 0 3px",fontSize:26,fontWeight:800,color:C.heading,letterSpacing:"-0.6px"}}>{value}</p>
+      {sub&&<p style={{margin:0,fontSize:11.5,color:C.muted}}>{sub}</p>}
     </Card>
   );
 }
@@ -166,7 +124,7 @@ function BottomNav({ page, setPage, user, syncing, onLogout }) {
     <>
       {showMore && (
         <div onClick={() => setShowMore(false)}
-          style={{position:"fixed",inset:0,background:"rgba(11,31,58,.45)",zIndex:998}}/>
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:998}}/>
       )}
       {/* More drawer */}
       <div style={{position:"fixed",bottom:showMore?64:"-260px",left:0,right:0,background:C.navy,
@@ -297,44 +255,54 @@ function Dashboard({ data, update, nav, name }) {
   const dueToday = jobs.filter(j=>j.status!=="done" && j.deadline===today);
   const active   = jobs.filter(j=>j.status!=="done");
   const unpaid   = jobs.filter(j=>!j.paid).reduce((a,j)=>a+(j.price||0),0);
-  const R=54, CIRC=2*Math.PI*R, dash=CIRC*pct/100;
+  const R=74, CIRC=2*Math.PI*R, dash=CIRC*pct/100;
+  const monthsLeft = Math.max(0, 11 - new Date().getMonth());
+  const ofLabel = mg.label && /by/i.test(mg.label) ? `of ${mg.label}` : `of $${mg.target.toLocaleString()}`;
   const openGoal = () => { setGform({target:mg.target,current:mg.current,label:mg.label||""}); setEditGoal(true); };
   const saveGoal = () => { update("moneyGoal",{ target:Number(gform.target||0), current:Number(gform.current||0), label:gform.label }); setEditGoal(false); };
   return (
     <div>
-      <div style={{marginBottom:22}}>
-        <h2 style={{margin:0,fontSize:26,fontWeight:800,color:C.muted,letterSpacing:"-0.6px"}}>let's go, <span style={{color:C.heading}}>{(name||"hamza").toLowerCase()}.</span></h2>
-        <p style={{margin:"6px 0 0",fontSize:13.5,color:C.muted}}>{mg.label||"Finish strong."}</p>
+      {/* brand + greeting */}
+      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:16}}>
+        <span style={{fontSize:13}}>❄️</span>
+        <span style={{fontSize:11,fontWeight:700,color:C.muted,letterSpacing:"0.18em"}}>FROSTERMEDIA</span>
+      </div>
+      <div style={{marginBottom:20}}>
+        <h2 style={{margin:0,fontSize:27,fontWeight:800,color:C.muted,letterSpacing:"-0.6px"}}>let's go, <span style={{color:C.heading}}>{(name||"hamza").toLowerCase()}.</span></h2>
+        <p style={{margin:"7px 0 0",fontSize:13.5,color:C.muted}}>{monthsLeft} month{monthsLeft===1?"":"s"} to ${mg.target.toLocaleString()}. finish strong.</p>
       </div>
 
-      {/* Money goal hero */}
-      <Card style={{marginBottom:14}}>
-        <div style={{display:"flex",alignItems:"center",gap:24,flexWrap:"wrap"}}>
-          <div style={{position:"relative",width:132,height:132,flexShrink:0}}>
-            <svg width="132" height="132" viewBox="0 0 132 132">
-              <circle cx="66" cy="66" r={R} fill="none" stroke={C.surfaceAlt} strokeWidth="11"/>
-              <circle cx="66" cy="66" r={R} fill="none" stroke={C.blue} strokeWidth="11" strokeLinecap="round"
-                strokeDasharray={`${dash} ${CIRC}`} transform="rotate(-90 66 66)" style={{transition:"stroke-dasharray .5s"}}/>
+      {/* Money goal hero — centered ring */}
+      <Card style={{marginBottom:12,padding:"30px 22px 26px"}}>
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+          <div style={{position:"relative",width:184,height:184}}>
+            <svg width="184" height="184" viewBox="0 0 184 184">
+              <circle cx="92" cy="92" r={R} fill="none" stroke={C.surfaceAlt} strokeWidth="13"/>
+              <circle cx="92" cy="92" r={R} fill="none" stroke={C.blue} strokeWidth="13" strokeLinecap="round"
+                strokeDasharray={`${dash} ${CIRC}`} transform="rotate(-90 92 92)" style={{transition:"stroke-dasharray .5s"}}/>
             </svg>
             <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-              <span style={{fontSize:10.5,fontWeight:700,color:C.muted,letterSpacing:"0.05em"}}>{pct}% THERE</span>
-              <span style={{fontSize:22,fontWeight:800,color:C.heading,letterSpacing:"-0.5px"}}>${mg.current.toLocaleString()}</span>
-              <span style={{fontSize:11,color:C.muted}}>of ${mg.target.toLocaleString()}</span>
+              <span style={{fontSize:11,fontWeight:700,color:C.muted,letterSpacing:"0.08em",marginBottom:2}}>{pct}% THERE</span>
+              <span style={{fontSize:34,fontWeight:800,color:C.heading,letterSpacing:"-1px",lineHeight:1}}>${mg.current.toLocaleString()}</span>
+              <span style={{fontSize:12,color:C.muted,marginTop:3}}>{ofLabel}</span>
             </div>
           </div>
-          <div style={{flex:1,minWidth:180}}>
-            <SLabel>Money Goal</SLabel>
-            <p style={{margin:"0 0 14px",fontSize:14.5,color:C.body,lineHeight:1.6}}>You're <b style={{color:C.heading}}>${(mg.target-mg.current).toLocaleString()}</b> away from <b style={{color:C.heading}}>${mg.target.toLocaleString()}</b>.</p>
-            <Btn v="ghost" onClick={openGoal}>Edit goal</Btn>
-          </div>
+          <button onClick={openGoal} style={{marginTop:18,background:"none",border:`1px solid ${C.border}`,borderRadius:8,padding:"7px 16px",color:C.body,fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:FONT}}>Edit goal</button>
         </div>
       </Card>
 
-      {/* Editing stat row */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:13,marginBottom:14}}>
-        <Stat label="Active Jobs" value={active.length}                sub="in the pipeline" accent={C.blue}/>
-        <Stat label="Due Today"   value={dueToday.length}              sub="deliverables"    accent={C.red}/>
-        <Stat label="Unpaid"      value={`$${unpaid.toLocaleString()}`} sub="to collect"     accent={C.amber}/>
+      {/* 3 boxes — reference layout */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
+        {[
+          { v:`$${unpaid.toLocaleString()}`, l:"Unpaid" },
+          { v:active.length,                 l:"Active Jobs" },
+          { v:dueToday.length,               l:"Due Today" },
+        ].map((b,i)=>(
+          <div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+            <span style={{fontSize:24,fontWeight:800,color:C.heading,letterSpacing:"-0.6px"}}>{b.v}</span>
+            <span style={{fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",textAlign:"center",lineHeight:1.3}}>{b.l}</span>
+          </div>
+        ))}
       </div>
 
       {/* Due today + pending tasks */}
@@ -990,6 +958,7 @@ export default function App() {
   const [page,      setPage]     = useState("dashboard");
   const [collapsed, setCol]      = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
+  const [syncErr,   setSyncErr]  = useState(null);
   const isMobile = useIsMobile();
 
   // ── Auth listener + redirect result ─────────────────────────────────────────
@@ -1017,6 +986,7 @@ export default function App() {
       },
       err => {                                     // don't hang forever if the read is blocked/offline
         console.error("Firestore listen failed:", err);
+        setSyncErr(err.code || err.message || "read failed");
         setData(prev => prev || SEED);
       }
     );
@@ -1030,6 +1000,8 @@ export default function App() {
       if (user) {
         setSyncing(true);
         setDoc(doc(db, "users", user.uid), next)
+          .then(() => setSyncErr(null))
+          .catch(e => { console.error("Save failed:", e); setSyncErr(e.code || e.message || "save failed"); })
           .finally(() => setSyncing(false));
       }
       return next;
@@ -1068,7 +1040,7 @@ export default function App() {
 
   return (
     <div style={{display:"flex",minHeight:"100vh",background:C.surface,fontFamily:FONT}}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');*{box-sizing:border-box;-webkit-font-smoothing:antialiased}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#D0D5E0;border-radius:99px}button{transition:opacity .15s}button:hover{opacity:.82}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');*{box-sizing:border-box;-webkit-font-smoothing:antialiased}html,body{margin:0;background:${C.surface}}::-webkit-scrollbar{width:0;height:0}::-webkit-scrollbar-thumb{background:transparent}*{scrollbar-width:none}button{transition:opacity .15s}button:hover{opacity:.82}`}</style>
 
       {/* Sidebar — desktop only */}
       {!isMobile && (
@@ -1118,6 +1090,11 @@ export default function App() {
       {/* Main content */}
       <main style={{flex:1,overflowY:"auto",padding:isMobile?"16px 15px 84px":"34px 42px",minHeight:"100vh",minWidth:0}}>
         <div style={{maxWidth:940,margin:"0 auto"}}>
+          {syncErr && (
+            <div style={{marginBottom:16,padding:"11px 14px",borderRadius:10,background:C.redDim,border:`1px solid ${C.red}`,color:C.red,fontSize:12.5,fontWeight:500}}>
+              Sync error: <b>{syncErr}</b> — changes aren't saving. If this says "permission-denied", the Firestore rules need publishing.
+            </div>
+          )}
           <Page data={data} update={update} nav={setPage} name={firstName}/>
         </div>
       </main>
